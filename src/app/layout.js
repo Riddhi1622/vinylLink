@@ -1,6 +1,7 @@
 // src/app/layout.js
 import { Cormorant_Garamond, Syne } from 'next/font/google';
 import './globals.css';
+import { ThirdwebProvider } from "thirdweb/react";
 
 /*
  *  Cormorant Garamond — archival serif for headings
@@ -52,7 +53,11 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${cormorant.variable} ${syne.variable}`}
     >
-      <body>{children}</body>
+      <body>
+       <ThirdwebProvider>
+        {children}
+       </ThirdwebProvider>
+        </body>
     </html>
   );
 }
