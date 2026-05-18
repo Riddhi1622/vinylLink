@@ -14,7 +14,20 @@ export default function Home() {
   return (
     <main>
       <Navbar />
+      
       <Hero />
+      <div>
+        /test-db 
+        (for testing database connection)
+        /tokens (for testing the indexing of tokens)
+        /api/indexer/tokens (for connecting ethereum to supabase)
+
+         curl -X POST http://localhost:3000/api/indexer/sync \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer "service role key goes here"
+  for vs code termianl backup api checking                                                                  
+
+      </div>
 
       <div style={{ padding: '0 var(--page-px)' }}>
         <div className="section-rule" />
