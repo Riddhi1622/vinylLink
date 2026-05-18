@@ -1,107 +1,60 @@
-// src/lib/db.js
-// All Supabase query functions — import these wherever you need DB access.
 
-import { supabase } from './supabase';
+import { supabaseBrowser } from './supabase-browser';
 
-/* ── Users ──────────────────────────────────────────────────────────────────
-   Called once when a wallet connects. Creates the user row if it doesn't
-   exist yet (upsert), and returns the user record.
-   wallet_address is always stored lowercase.
-────────────────────────────────────────────────────────────────────────── */
-export async function upsertUser(walletAddress) {
-  const address = walletAddress.toLowerCase();
-  const { data, error } = await supabase
-    .from('users')
-    .upsert({ wallet_address: address }, { onConflict: 'wallet_address' })
-    .select()
-    .single();
+export async function getMarketplaceTokens() {
+  const { data, error } = await supabaseBrowser
+    .from('tokens')
+    .select('*')
+    .order('token_id', { ascending: true });
 
-  if (error) throw error;
-  return data;
+  if (error) throw new Error(error.message);
+  return data ?? [];
 }
 
-/* ── Listing Metadata Cache ─────────────────────────────────────────────────
-   Before fetching from IPFS, check if we already have the metadata stored.
-   After a successful IPFS fetch, write it to the cache.
-────────────────────────────────────────────────────────────────────────── */
-
-/**
- * Returns cached metadata for a given assetContract + tokenId, or null.
- */
-export async function getCachedMetadata(assetContract, tokenId) {
-  const { data, error } = await supabase
-    .from('listing_metadata_cache')
-    .select('metadata')
-    .eq('asset_contract', assetContract.toLowerCase())
-    .eq('token_id', tokenId.toString())
-    .maybeSingle();
-
-  if (error) {
-    console.warn('Cache read error:', error.message);
-    return null;
-  }
-  return data?.metadata ?? null;
-}
-
-/**
- * Writes resolved NFT metadata to the cache.
- * Uses upsert so re-running never creates duplicates.
- */
-export async function setCachedMetadata(assetContract, tokenId, metadata) {
-  const { error } = await supabase
-    .from('listing_metadata_cache')
-    .upsert(
-      {
-        asset_contract: assetContract.toLowerCase(),
-        token_id: tokenId.toString(),
-        metadata,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'asset_contract,token_id' }
-    );
-
-  if (error) console.warn('Cache write error:', error.message);
-}
-
-/* ── Wishlists ──────────────────────────────────────────────────────────────
-   Each row ties a wallet_address to a listing_id (from the marketplace).
-────────────────────────────────────────────────────────────────────────── */
-
-/**
- * Returns a Set of listing IDs (as strings) that the user has wishlisted.
- */
 export async function getWishlist(walletAddress) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseBrowser
     .from('wishlists')
     .select('listing_id')
-    .eq('wallet_address', walletAddress.toLowerCase());
+    .eq('wallet_address', walletAddress);
 
-  if (error) throw error;
-  return new Set((data ?? []).map((r) => r.listing_id.toString()));
+  if (error) return new Set();
+  return new Set(data.map(r => r.listing_id?.toString()));
 }
 
-/**
- * Adds a listing to the user's wishlist.
- */
 export async function addToWishlist(walletAddress, listingId) {
-  const { error } = await supabase.from('wishlists').upsert(
-    {
-      wallet_address: walletAddress.toLowerCase(),
-      listing_id: listingId.toString(),
-    },
-    { onConflict: 'wallet_address,listing_id' }
-  );
-  if (error) throw error;
+  await supabaseBrowser.from('wishlists').insert({
+    wallet_address: walletAddress,
+    listing_id: listingId.toString(),
+  });
 }
 
-/**
- * Removes a listing from the user's wishlist.
- */
 export async function removeFromWishlist(walletAddress, listingId) {
-  const { error } = await supabase
-    .from('wishlists')
+  await supabaseBrowser.from('wishlists')
     .delete()
-    .eq('wallet_address', walletAddress.toLowerCase())
+    .eq('wallet_address', walletAddress)
     .eq('listing_id', listingId.toString());
-  if (error) throw error;
 }
+
+export async function upsertUser(walletAddress) {
+  await supabaseBrowser.from('users').upsert(
+    { wallet_address: walletAddress },
+    { onConflict: 'wallet_address' }
+  );
+}
+
+export async function getCachedMetadata(contractAddress, tokenId) {
+  const { data } = await supabaseBrowser
+    .from('tokens')
+    .select('raw_metadata')
+    .eq('contract_address', contractAddress.toLowerCase())
+    .eq('token_id', tokenId.toString())
+    .single();
+  return data?.raw_metadata ?? null;
+}
+
+export async function setCachedMetadata(contractAddress, tokenId, metadata) {
+  await supabaseBrowser.from('tokens').update({ raw_metadata: metadata })
+    .eq('contract_address', contractAddress.toLowerCase())
+    .eq('token_id', tokenId.toString());
+}
+EOF
