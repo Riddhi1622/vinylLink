@@ -22,6 +22,10 @@ export default function Navbar() {
 
         <a href="/marketplace" className="nav-cta">Marketplace</a>
 
+        <a href="/admin/indexer" className="nav-cta" style={{ color: 'var(--cream-50)', borderColor: 'var(--border-cream)' }}>
+          Admin
+        </a>
+todo for tomorrow. set that auth logic, and set all passwords  
         {/* ConnectButton must live in a plain <div>, never inside a <button> */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <ConnectButton
